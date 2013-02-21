@@ -3,6 +3,7 @@ ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunction
         _needsEvaluation = true,
         _isBeingEvaluated = false,
         _suppressDisposalUntilDisposeWhenReturnsFalse = false,
+        _isDisposed = false,
         readFunction = evaluatorFunctionOrOptions;
 
     if (readFunction && typeof readFunction == "object") {
@@ -26,6 +27,7 @@ ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunction
     }
 
     function disposeAllSubscriptionsToDependencies() {
+        _isDisposed = true;
         ko.utils.objectForEach(_subscriptionsToDependencies, function (id, subscription) {
             subscription.dispose();
         });
@@ -52,6 +54,11 @@ ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunction
             // This is not desirable (it's hard for a developer to realise a chain of dependencies might cause this, and they almost
             // certainly didn't intend infinite re-evaluations). So, for predictability, we simply prevent ko.computeds from causing
             // their own re-evaluation. Further discussion at https://github.com/SteveSanderson/knockout/pull/387
+            return;
+        }
+
+        // Do not evaluate (and possibly capture new dependencies) if disposed
+        if (_isDisposed) {
             return;
         }
 
