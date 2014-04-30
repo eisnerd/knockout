@@ -2,21 +2,28 @@
 ko.utils.compareArrays = (function () {
     var statusNotInOld = 'added', statusNotInNew = 'deleted';
 
+    function identical(a, b) {
+        return a === b;
+    }
+
+    ko.utils.same = identical;
+
     // Simple calculation based on Levenshtein distance.
-    function compareArrays(oldArray, newArray, options) {
+    function compareArrays(oldArray, newArray, options, deep) {
         // For backward compatibility, if the third arg is actually a bool, interpret
         // it as the old parameter 'dontLimitMoves'. Newer code should use { dontLimitMoves: true }.
         options = (typeof options === 'boolean') ? { 'dontLimitMoves': options } : (options || {});
         oldArray = oldArray || [];
         newArray = newArray || [];
+        var same = deep? ko.utils.same : identical;
 
         if (oldArray.length <= newArray.length)
-            return compareSmallArrayToBigArray(oldArray, newArray, statusNotInOld, statusNotInNew, options);
+            return compareSmallArrayToBigArray(oldArray, newArray, statusNotInOld, statusNotInNew, options, same);
         else
-            return compareSmallArrayToBigArray(newArray, oldArray, statusNotInNew, statusNotInOld, options);
+            return compareSmallArrayToBigArray(newArray, oldArray, statusNotInNew, statusNotInOld, options, same);
     }
 
-    function compareSmallArrayToBigArray(smlArray, bigArray, statusNotInSml, statusNotInBig, options) {
+    function compareSmallArrayToBigArray(smlArray, bigArray, statusNotInSml, statusNotInBig, options, same) {
         var myMin = Math.min,
             myMax = Math.max,
             editDistanceMatrix = [],
@@ -37,7 +44,7 @@ ko.utils.compareArrays = (function () {
                     thisRow[bigIndex] = smlIndex + 1;
                 else if (!smlIndex)  // Top row - transform empty array into new array via additions
                     thisRow[bigIndex] = bigIndex + 1;
-                else if (smlArray[smlIndex - 1] === bigArray[bigIndex - 1])
+                else if (same(smlArray[smlIndex - 1], bigArray[bigIndex - 1]))
                     thisRow[bigIndex] = lastRow[bigIndex - 1];                  // copy value (no edit)
                 else {
                     var northDistance = lastRow[bigIndex] || maxDistance;       // not in big (deletion)
